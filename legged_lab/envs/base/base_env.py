@@ -257,11 +257,15 @@ class BaseEnv(VecEnv):
                 ),
                 dim=1,
             )[0]
-            > 1.0,
+            > 10.0,
             dim=1,
         )
         time_out_buf = self.episode_length_buf >= self.max_episode_length
+        self.gravity_termination_buf = torch.any(
+            torch.norm(self.robot.data.projected_gravity_b[:, 0:2], dim=-1, keepdim=True) > 0.8, dim=1
+        )
         reset_buf |= time_out_buf
+        reset_buf |= self.gravity_termination_buf
         return reset_buf, time_out_buf
 
     def init_obs_buffer(self):
