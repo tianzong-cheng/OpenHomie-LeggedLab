@@ -26,7 +26,7 @@ from legged_lab.envs.base.base_env_config import (  # noqa:F401
     RobotCfg,
     SimCfg,
 )
-from legged_lab.terrains import GRAVEL_TERRAINS_CFG, ROUGH_TERRAINS_CFG
+from legged_lab.terrains import GRAVEL_TERRAINS_CFG
 
 
 @configclass
@@ -112,7 +112,7 @@ class G1RewardCfg(RewardCfg):
 
 
 @configclass
-class G1FlatEnvCfg(BaseEnvCfg):
+class G1HomieEnvCfg(BaseEnvCfg):
 
     reward = G1RewardCfg()
 
@@ -126,38 +126,16 @@ class G1FlatEnvCfg(BaseEnvCfg):
         self.robot.feet_body_names = [".*ankle_roll.*"]
         self.domain_rand.events.add_base_mass.params["asset_cfg"].body_names = [".*torso.*"]
 
-
-@configclass
-class G1FlatAgentCfg(BaseAgentCfg):
-    experiment_name: str = "g1_flat"
-    wandb_project: str = "g1_flat"
-
-
-@configclass
-class G1RoughEnvCfg(G1FlatEnvCfg):
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.scene.height_scanner.enable_height_scan = True
-        self.scene.terrain_generator = ROUGH_TERRAINS_CFG
-        self.robot.actor_obs_history_length = 1
-        self.robot.critic_obs_history_length = 1
-        self.reward.feet_air_time.weight = 0.25
-        self.reward.track_lin_vel_xy_exp.weight = 1.5
-        self.reward.track_ang_vel_z_exp.weight = 1.5
-        self.reward.lin_vel_z_l2.weight = -0.25
+        self.lower_dof = [0, 1, 3, 4, 6, 7, 9, 10, 13, 14, 17, 18]
+        self.upper_dof = [2, 5, 8, 11, 12, 15, 16, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
+        self.num_lower_dof = len(self.lower_dof)
+        self.num_upper_dof = len(self.upper_dof)
+        self.num_dof = self.num_lower_dof + self.num_upper_dof
+        # Upper body action resample interval
+        self.upper_resample_interval_s = 1.0
 
 
 @configclass
-class G1RoughAgentCfg(BaseAgentCfg):
-    experiment_name: str = "g1_rough"
-    wandb_project: str = "g1_rough"
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.policy.class_name = "ActorCriticRecurrent"
-        self.policy.actor_hidden_dims = [256, 256, 128]
-        self.policy.critic_hidden_dims = [256, 256, 128]
-        self.policy.rnn_hidden_size = 256
-        self.policy.rnn_num_layers = 1
-        self.policy.rnn_type = "lstm"
+class G1HomieAgentCfg(BaseAgentCfg):
+    experiment_name: str = "g1_homie"
+    wandb_project: str = "g1_homie"

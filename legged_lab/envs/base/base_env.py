@@ -24,12 +24,13 @@ from isaaclab.utils.buffers import CircularBuffer, DelayBuffer
 from rsl_rl.env import VecEnv
 
 from legged_lab.envs.base.base_env_config import BaseEnvCfg
+from legged_lab.envs.g1.g1_config import G1HomieEnvCfg
 from legged_lab.utils.env_utils.scene import SceneCfg
 
 
 class BaseEnv(VecEnv):
     def __init__(self, cfg: BaseEnvCfg, headless):
-        self.cfg: BaseEnvCfg
+        self.cfg: G1HomieEnvCfg
 
         self.cfg = cfg
         self.headless = headless
@@ -88,7 +89,7 @@ class BaseEnv(VecEnv):
 
         self.max_episode_length_s = self.cfg.scene.max_episode_length_s
         self.max_episode_length = np.ceil(self.max_episode_length_s / self.step_dt)
-        self.num_actions = self.robot.data.default_joint_pos.shape[1]
+        self.num_actions = self.cfg.num_lower_dof
         self.clip_actions = self.cfg.normalization.clip_actions
         self.clip_obs = self.cfg.normalization.clip_observations
 
@@ -97,7 +98,7 @@ class BaseEnv(VecEnv):
             self.cfg.domain_rand.action_delay.params["max_delay"], self.num_envs, device=self.device
         )
         self.action_buffer.compute(
-            torch.zeros(self.num_envs, self.num_actions, dtype=torch.float, device=self.device, requires_grad=False)
+            torch.zeros(self.num_envs, self.cfg.num_dof, dtype=torch.float, device=self.device, requires_grad=False)
         )
         if self.cfg.domain_rand.action_delay.enable:
             time_lags = torch.randint(
@@ -125,6 +126,9 @@ class BaseEnv(VecEnv):
         self.sim_step_counter = 0
         self.time_out_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self.init_obs_buffer()
+
+        self.upper_curriculum_ratio = 0.0  # ranges from 0 to 1
+        self.upper_actions = torch.zeros((self.num_envs, self.cfg.num_upper_dof), device=self.device)
 
     def compute_current_observations(self):
         robot = self.robot
@@ -215,8 +219,13 @@ class BaseEnv(VecEnv):
         self.sim.forward()
 
     def step(self, actions: torch.Tensor):
+        self.compute_upper_actions()
 
-        delayed_actions = self.action_buffer.compute(actions)
+        whole_body_actions = torch.zeros(self.num_envs, self.cfg.num_lower_dof + self.cfg.num_upper_dof).to(self.device)
+        whole_body_actions[:, self.cfg.lower_dof] = actions
+        whole_body_actions[:, self.cfg.upper_dof] = self.upper_actions
+
+        delayed_actions = self.action_buffer.compute(whole_body_actions)
 
         cliped_actions = torch.clip(delayed_actions, -self.clip_actions, self.clip_actions).to(self.device)
         processed_actions = cliped_actions * self.action_scale + self.robot.data.default_joint_pos
@@ -311,10 +320,47 @@ class BaseEnv(VecEnv):
         extras = {"Curriculum/terrain_levels": torch.mean(self.scene.terrain.terrain_levels.float())}
         return extras
 
+    def update_action_curriculum(self, env_ids):
+        if torch.mean(
+            self.reward_manager._episode_sums["track_lin_vel_xy_exp"][env_ids] / self.max_episode_length
+            > 0.8 * self.reward_manager.get_term_cfg("track_lin_vel_xy_exp").weight
+        ):
+            self.upper_curriculum_ratio += 0.05
+            self.upper_curriculum_ratio = min(self.upper_curriculum_ratio, 1.0)
+
     def get_observations(self):
         actor_obs, critic_obs = self.compute_observations()
         self.extras["observations"] = {"critic": critic_obs}
         return actor_obs, self.extras
+
+    def compute_upper_actions(self):
+        if (self.sim_step_counter / self.cfg.sim.decimation) % (self.cfg.upper_resample_interval_s / self.step_dt) == 0:
+            uniform_samples = torch.rand(self.num_envs, self.cfg.num_upper_dof, device=self.device)
+            decay_rate = 20 * (1 - self.upper_curriculum_ratio * 0.99)
+            # - Early curriculum: Distribution concentrated near 0
+            # - Late curriculum: Nearly uniform distribution
+            randomization_intensity = (
+                -1.0 / decay_rate * torch.log(1 - uniform_samples + uniform_samples * np.exp(-decay_rate))
+            )
+
+            per_joint_scale = torch.rand(self.num_envs, self.cfg.num_upper_dof, device=self.device)
+            joint_randomization_ratio = randomization_intensity * per_joint_scale
+
+            # Use ratio times minimum or maximum as the target randomly
+            boundary_selector = torch.rand(self.num_envs, self.cfg.num_upper_dof, device=self.device)
+            action_boundaries = torch.where(
+                boundary_selector >= 0.5,
+                self.robot.data.joint_pos_limits[:, self.cfg.upper_dof, 0],
+                self.robot.data.joint_pos_limits[:, self.cfg.upper_dof, 1],
+            )
+
+            # Upper body target for the next interval
+            self.interval_upper_target = action_boundaries * joint_randomization_ratio
+            # Upper body target increment per step
+            self.step_upper_target_delta = (self.interval_upper_target - self.upper_actions) / (
+                self.cfg.upper_resample_interval_s / self.step_dt
+            )
+        self.upper_actions += self.step_upper_target_delta
 
     @staticmethod
     def seed(seed: int = -1) -> int:
