@@ -165,3 +165,9 @@ def feet_too_near_humanoid(
     feet_pos = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
     distance = torch.norm(feet_pos[:, 0] - feet_pos[:, 1], dim=-1)
     return (threshold - distance).clamp(min=0)
+
+
+def track_height_exp(env: BaseEnv, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    asset: Articulation = env.scene[asset_cfg.name]
+    height_error = torch.square(env.command_generator.command[:, 3] - asset.data.root_pos_w[:, 2])
+    return torch.exp(-height_error / std**2)
