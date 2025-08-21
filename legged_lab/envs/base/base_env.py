@@ -196,6 +196,8 @@ class BaseEnv(VecEnv):
                 terrain_levels = self.update_terrain_levels(env_ids)
                 self.extras["log"].update(terrain_levels)
 
+        self.extras["log"].update(self.update_action_curriculum(env_ids))
+
         self.scene.reset(env_ids)
         if "reset" in self.event_manager.available_modes:
             self.event_manager.apply(
@@ -321,12 +323,15 @@ class BaseEnv(VecEnv):
         return extras
 
     def update_action_curriculum(self, env_ids):
-        if torch.mean(
-            self.reward_manager._episode_sums["track_lin_vel_xy_exp"][env_ids] / self.max_episode_length
+        if (
+            torch.mean(self.reward_manager._episode_sums["track_lin_vel_xy_exp"][env_ids] / self.max_episode_length)
             > 0.8 * self.reward_manager.get_term_cfg("track_lin_vel_xy_exp").weight
         ):
             self.upper_curriculum_ratio += 0.05
             self.upper_curriculum_ratio = min(self.upper_curriculum_ratio, 1.0)
+
+        extras = {"Curriculum/upper_curriculum_ratio": self.upper_curriculum_ratio}
+        return extras
 
     def get_observations(self):
         actor_obs, critic_obs = self.compute_observations()
