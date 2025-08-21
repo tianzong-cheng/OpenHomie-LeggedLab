@@ -26,7 +26,6 @@ from legged_lab.envs.base.base_env_config import (  # noqa:F401
     RobotCfg,
     SimCfg,
 )
-from legged_lab.terrains import GRAVEL_TERRAINS_CFG
 
 
 @configclass
@@ -91,8 +90,8 @@ class G1HomieEnvCfg(BaseEnvCfg):
         super().__post_init__()
         self.scene.height_scanner.prim_body_name = "torso_link"
         self.scene.robot = G1_CFG
-        self.scene.terrain_type = "generator"
-        self.scene.terrain_generator = GRAVEL_TERRAINS_CFG
+        self.scene.terrain_type = "plane"
+        self.scene.terrain_generator = None
         self.robot.terminate_contacts_body_names = [".*torso.*"]
         self.robot.feet_body_names = [".*ankle_roll.*"]
         self.domain_rand.events.add_base_mass.params["asset_cfg"].body_names = [".*torso.*"]
