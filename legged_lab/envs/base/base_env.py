@@ -14,7 +14,6 @@ import isaacsim.core.utils.torch as torch_utils  # type: ignore
 import numpy as np
 import torch
 from isaaclab.assets.articulation import Articulation
-from isaaclab.envs.mdp.commands import UniformVelocityCommand, UniformVelocityCommandCfg
 from isaaclab.managers import EventManager, RewardManager
 from isaaclab.managers.scene_entity_cfg import SceneEntityCfg
 from isaaclab.scene import InteractiveScene

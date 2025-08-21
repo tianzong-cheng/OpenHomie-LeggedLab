@@ -9,20 +9,13 @@
 # This file contains code derived from Isaac Lab Project (BSD-3-Clause license)
 # with modifications by Legged Lab Project (BSD-3-Clause license).
 
-import math
+
 from dataclasses import MISSING
 
-from isaaclab.envs.mdp.commands.velocity_command import (
-    NormalVelocityCommand,
-    UniformVelocityCommand,
-)
+from isaaclab.envs.mdp.commands.velocity_command import UniformVelocityCommand
 from isaaclab.managers import CommandTermCfg
 from isaaclab.markers import VisualizationMarkersCfg
-from isaaclab.markers.config import (
-    BLUE_ARROW_X_MARKER_CFG,
-    FRAME_MARKER_CFG,
-    GREEN_ARROW_X_MARKER_CFG,
-)
+from isaaclab.markers.config import BLUE_ARROW_X_MARKER_CFG, GREEN_ARROW_X_MARKER_CFG
 from isaaclab.utils import configclass
 
 
