@@ -134,6 +134,9 @@ class G1HomieEnvCfg(BaseEnvCfg):
         # Upper body action resample interval
         self.upper_resample_interval_s = 1.0
 
+        self.robot.actor_obs_history_length = 6
+        self.robot.critic_obs_history_length = 6
+
 
 @configclass
 class G1HomieAgentCfg(BaseAgentCfg):

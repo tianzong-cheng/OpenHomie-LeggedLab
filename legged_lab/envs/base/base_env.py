@@ -25,6 +25,7 @@ from rsl_rl.env import VecEnv
 
 from legged_lab.envs.base.base_env_config import BaseEnvCfg
 from legged_lab.envs.g1.g1_config import G1HomieEnvCfg
+from legged_lab.mdp import UniformVelocityHeightCommand, UniformVelocityHeightCommandCfg
 from legged_lab.utils.env_utils.scene import SceneCfg
 
 
@@ -63,7 +64,7 @@ class BaseEnv(VecEnv):
         if self.cfg.scene.height_scanner.enable_height_scan:
             self.height_scanner: RayCaster = self.scene.sensors["height_scanner"]
 
-        command_cfg = UniformVelocityCommandCfg(
+        command_cfg = UniformVelocityHeightCommandCfg(
             asset_name="robot",
             resampling_time_range=self.cfg.commands.resampling_time_range,
             rel_standing_envs=self.cfg.commands.rel_standing_envs,
@@ -73,7 +74,7 @@ class BaseEnv(VecEnv):
             debug_vis=self.cfg.commands.debug_vis,
             ranges=self.cfg.commands.ranges,
         )
-        self.command_generator = UniformVelocityCommand(cfg=command_cfg, env=self)
+        self.command_generator = UniformVelocityHeightCommand(cfg=command_cfg, env=self)
         self.reward_manager = RewardManager(self.cfg.reward, self)
 
         self.init_buffers()

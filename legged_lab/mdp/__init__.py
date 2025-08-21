@@ -13,4 +13,6 @@
 
 from isaaclab.envs.mdp import *
 
+from .commands import *
+from .commands_cfg import *
 from .rewards import *
