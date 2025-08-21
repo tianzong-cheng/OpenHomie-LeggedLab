@@ -324,7 +324,7 @@ class BaseEnv(VecEnv):
 
     def update_action_curriculum(self, env_ids):
         if (
-            torch.mean(self.reward_manager._episode_sums["track_lin_vel_xy_exp"][env_ids] / self.max_episode_length)
+            torch.mean(self.reward_manager._episode_sums["track_lin_vel_xy_exp"][env_ids] / self.max_episode_length_s)
             > 0.8 * self.reward_manager.get_term_cfg("track_lin_vel_xy_exp").weight
         ):
             self.upper_curriculum_ratio += 0.05
