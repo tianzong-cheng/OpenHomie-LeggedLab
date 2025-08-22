@@ -113,6 +113,8 @@ class G1HomieEnvCfg(BaseEnvCfg):
         self.commands.ranges.ang_vel_yaw = [-0.8, 0.8]
         self.commands.ranges.height = [0.24, 0.74]
 
+        self.initial_upper_curriculum_ratio = 0.0
+
 
 @configclass
 class G1HomieAgentCfg(BaseAgentCfg):

@@ -127,7 +127,7 @@ class BaseEnv(VecEnv):
         self.time_out_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self.init_obs_buffer()
 
-        self.upper_curriculum_ratio = 0.0  # ranges from 0 to 1
+        self.upper_curriculum_ratio = self.cfg.initial_upper_curriculum_ratio  # ranges from 0 to 1
         self.upper_actions = torch.zeros((self.num_envs, self.cfg.num_upper_dof), device=self.device)
 
     def compute_current_observations(self):

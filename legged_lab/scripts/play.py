@@ -46,7 +46,7 @@ from legged_lab.utils.cli_args import update_rsl_rl_cfg
 
 def play():
     runner: OnPolicyRunner
-    env_cfg: BaseEnvCfg  # noqa:F405
+    env_cfg: G1HomieEnvCfg  # noqa:F405
 
     env_class_name = args_cli.task
     env_cfg, agent_cfg = task_registry.get_cfgs(env_class_name)
@@ -62,6 +62,7 @@ def play():
     env_cfg.commands.ranges.height = (0.24, 0.74)
     env_cfg.commands.ranges.heading = (0.0, 0.0)
     env_cfg.scene.height_scanner.drift_range = (0.0, 0.0)
+    env_cfg.initial_upper_curriculum_ratio = 1.0
 
     # env_cfg.scene.terrain_generator = None
     # env_cfg.scene.terrain_type = "plane"
