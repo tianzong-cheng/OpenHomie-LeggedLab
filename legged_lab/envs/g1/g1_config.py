@@ -107,6 +107,12 @@ class G1HomieEnvCfg(BaseEnvCfg):
         self.robot.actor_obs_history_length = 6
         self.robot.critic_obs_history_length = 6
 
+        self.commands.heading_command = False
+        self.commands.ranges.lin_vel_x = [-0.8, 1.2]
+        self.commands.ranges.lin_vel_y = [-0.5, 0.5]
+        self.commands.ranges.ang_vel_yaw = [-0.8, 0.8]
+        self.commands.ranges.height = [0.24, 0.74]
+
 
 @configclass
 class G1HomieAgentCfg(BaseAgentCfg):

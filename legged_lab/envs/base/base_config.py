@@ -82,7 +82,7 @@ class CommandRangesCfg:
     lin_vel_x: tuple = (-0.6, 1.0)
     lin_vel_y: tuple = (-0.5, 0.5)
     ang_vel_z: tuple = (-1.0, 1.0)
-    height: tuple = (0.6, 1.0)
+    height: tuple = (0.6, 0.8)
     heading: tuple = (-math.pi, math.pi)
 
 
