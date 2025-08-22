@@ -341,15 +341,10 @@ class BaseEnv(VecEnv):
     def compute_upper_actions(self):
         if (self.sim_step_counter / self.cfg.sim.decimation) % (self.cfg.upper_resample_interval_s / self.step_dt) == 0:
             uniform_samples = torch.rand(self.num_envs, self.cfg.num_upper_dof, device=self.device)
-            decay_rate = 20 * (1 - self.upper_curriculum_ratio * 0.99)
+            decay = 20 * (1 - self.upper_curriculum_ratio * 0.99)
             # - Early curriculum: Distribution concentrated near 0
             # - Late curriculum: Nearly uniform distribution
-            randomization_intensity = (
-                -1.0 / decay_rate * torch.log(1 - uniform_samples + uniform_samples * np.exp(-decay_rate))
-            )
-
-            per_joint_scale = torch.rand(self.num_envs, self.cfg.num_upper_dof, device=self.device)
-            joint_randomization_ratio = randomization_intensity * per_joint_scale
+            joint_ratio = -1.0 / decay * torch.log(1 - uniform_samples + uniform_samples * np.exp(-decay))
 
             # Use ratio times minimum or maximum as the target randomly
             boundary_selector = torch.rand(self.num_envs, self.cfg.num_upper_dof, device=self.device)
@@ -360,7 +355,7 @@ class BaseEnv(VecEnv):
             )
 
             # Upper body target for the next interval
-            self.interval_upper_target = action_boundaries * joint_randomization_ratio
+            self.interval_upper_target = action_boundaries * joint_ratio
             # Upper body target increment per step
             self.step_upper_target_delta = (self.interval_upper_target - self.upper_actions) / (
                 self.cfg.upper_resample_interval_s / self.step_dt
