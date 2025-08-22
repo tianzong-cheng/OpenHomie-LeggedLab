@@ -112,23 +112,30 @@ class UniformVelocityHeightCommand(CommandTerm):
         )
 
     def _resample_command(self, env_ids: Sequence[int]):
+        task_selection = torch.rand(len(env_ids), device=self.device)
+        height_task = task_selection < self.cfg.height_task_prob
+        velocity_task = ~height_task
+
         # sample velocity commands
         r = torch.empty(len(env_ids), device=self.device)
         # -- linear velocity - x direction
-        self.vel_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x)
+        self.vel_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x) * velocity_task
         # -- linear velocity - y direction
-        self.vel_command_b[env_ids, 1] = r.uniform_(*self.cfg.ranges.lin_vel_y)
+        self.vel_command_b[env_ids, 1] = r.uniform_(*self.cfg.ranges.lin_vel_y) * velocity_task
         # -- ang vel yaw - rotation around z
-        self.vel_command_b[env_ids, 2] = r.uniform_(*self.cfg.ranges.ang_vel_z)
+        self.vel_command_b[env_ids, 2] = r.uniform_(*self.cfg.ranges.ang_vel_z) * velocity_task
         # -- height command
-        self.vel_command_b[env_ids, 3] = r.uniform_(*self.cfg.ranges.height)
+        self.vel_command_b[env_ids, 3] = torch.where(
+            height_task, r.uniform_(*self.cfg.ranges.height), self.cfg.ranges.height[1]
+        )
+
         # heading target
         if self.cfg.heading_command:
             self.heading_target[env_ids] = r.uniform_(*self.cfg.ranges.heading)
             # update heading envs
             self.is_heading_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_heading_envs
         # update standing envs
-        self.is_standing_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_standing_envs
+        self.is_standing_env[env_ids] = (r.uniform_(0.0, 1.0) <= self.cfg.rel_standing_envs) * velocity_task
 
     def _update_command(self):
         """Post-processes the velocity command.
@@ -150,7 +157,7 @@ class UniformVelocityHeightCommand(CommandTerm):
         # Enforce standing (i.e., zero velocity command) for standing envs
         # TODO: check if conversion is needed
         standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
-        self.vel_command_b[standing_env_ids, :] = 0.0
+        self.vel_command_b[standing_env_ids, :3] = 0.0
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         # set visibility of markers

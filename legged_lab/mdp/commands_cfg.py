@@ -49,6 +49,9 @@ class UniformVelocityHeightCommandCfg(CommandTermCfg):
     This parameter is only used if :attr:`heading_command` is True.
     """
 
+    height_task_prob: float = 0.5
+    """The probability of sampling the height task. Defaults to 0.5."""
+
     @configclass
     class Ranges:
         """Uniform distribution ranges for the velocity commands."""
